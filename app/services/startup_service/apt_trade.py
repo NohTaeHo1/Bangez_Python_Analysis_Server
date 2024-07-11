@@ -9,17 +9,14 @@ from dotenv import load_dotenv
 
 from app.database.startup_database import start_save_apt_trade
 
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-def apt_trade_parsing():
-    load_dotenv()
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def apt_trade_parsing(deal_ymd):
 
     df = pd.read_csv(data_path)
-
-    current = datetime.datetime.now()
-    deal_ymd = current.strftime('%Y%m')
 
     LAWD_CD_list = df['법정동시군구코드'].unique()
 
@@ -59,7 +56,8 @@ def apt_trade_parsing():
         print('apt_rent colunm error')
     return total
 
-def apt_trade_preprocess(parsing_data: pd.DataFrame):
+
+async def apt_trade_preprocess(parsing_data: pd.DataFrame):
     dir = os.path.dirname(__file__)
     data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
@@ -75,42 +73,49 @@ def apt_trade_preprocess(parsing_data: pd.DataFrame):
 
     return apt_trade_final
 
-def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
+
+async def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
     apt_trade_final = preprocessed_data[['건축년도', '아파트', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층']]
     apt_trade_final_copy = apt_trade_final.copy()
     apt_trade_final_copy.rename(columns={'건축년도': 'built_year', '아파트': 'apt_name', '거래금액': 'trade_price',
                                    '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
                                    '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
+    apt_trade_final_copy['trade_price'].astype(float)
+    apt_trade_final_copy['net_leasable_area'].astype(float)
+    apt_trade_final_copy['price_per_area'] = apt_trade_final_copy['trade_price'] / apt_trade_final_copy['net_leasable_area']
+
     apt_trade_final_copy.astype(str)
     apt_trade_final_copy[apt_trade_final_copy.select_dtypes(include=['object']).columns] = apt_trade_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
 
     return apt_trade_final_copy
 
-def startup_apt_trade():
+
+async def startup_apt_trade():
     current = datetime.datetime.now()
     deal_y = int(current.strftime('%Y'))
     deal_m = int(current.strftime('%m'))
 
-    for i in range(deal_m, 0, -1):
+    for i in range(deal_m, 6, -1):
         deal_ymd = str(deal_y) + str(i).zfill(2)
-        df = apt_trade_parsing(deal_ymd)
-        df = apt_trade_preprocess(df)
-        df = apt_trade_select_columns(df)
+        df = await apt_trade_parsing(deal_ymd)
+        df = await apt_trade_preprocess(df)
+        df = await apt_trade_select_columns(df)
         total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-        start_save_apt_trade(total_json)
+        await start_save_apt_trade(total_json)
         print(f'{deal_ymd} apt_trade save success')
 
 
-    for i in range(deal_y-1, 2015, -1):
-        for j in range(1, 13, 1):
+    for i in range(deal_y - 1, 2022, -1):
+        for j in range(1, 2, 1): # 13을 2로 테스트...
             deal_ymd = str(i) + str(j).zfill(2)
-            df = apt_trade_parsing(deal_ymd)
-            df = apt_trade_preprocess(df)
-            df = apt_trade_select_columns(df)
+            df = await apt_trade_parsing(deal_ymd)
+            df = await apt_trade_preprocess(df)
+            df = await apt_trade_select_columns(df)
 
             total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-            start_save_apt_trade(total_json)
+            await start_save_apt_trade(total_json)
+
             print(f'{deal_ymd} apt_trade save success')
 
 

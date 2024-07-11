@@ -11,7 +11,7 @@ from app.database.startup_database import start_save_school
 
 load_dotenv()
 
-def school_parsing():
+async def school_parsing():
     load_dotenv()
 
     api_key = os.getenv('NEIS_API_KEY')
@@ -60,7 +60,7 @@ def school_parsing():
     return total
 
 
-def school_select_columns(parsing_data: pd.DataFrame):
+async def school_select_columns(parsing_data: pd.DataFrame):
     school_final = parsing_data[['학교명', '학교종류명', '도로명주소', '홈페이지주소']]
     school_final = school_final.copy()
     school_final.rename(columns={'학교명': 'school_name', '학교종류명': 'school_type', '도로명주소': 'address',
@@ -72,12 +72,12 @@ def school_select_columns(parsing_data: pd.DataFrame):
 
     return school_final
 
-def startup_school():
-    df = school_parsing()
-    df = school_select_columns(df)
+async def startup_school():
+    df = await school_parsing()
+    df = await school_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-    start_save_school(total_json)
+    await start_save_school(total_json)
 
     print(f'school save success')
 

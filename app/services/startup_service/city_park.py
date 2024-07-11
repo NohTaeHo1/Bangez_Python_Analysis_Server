@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from app.database.startup_database import start_save_city_park
 
 
-def city_park_parsing():
+async def city_park_parsing():
     load_dotenv()
 
     api_key = os.getenv('API_KEY')
@@ -43,7 +43,7 @@ def city_park_parsing():
     return total
 
 
-def city_park_preprocess(parsing_data: pd.DataFrame):
+async def city_park_preprocess(parsing_data: pd.DataFrame):
     city_park = parsing_data
     city_park['parkNm'] = city_park['parkNm'].str.replace('&amp;lt;', '<').str.replace('&amp;gt;', '>')
 
@@ -53,7 +53,7 @@ def city_park_preprocess(parsing_data: pd.DataFrame):
     return city_park_seoul
 
 
-def city_park_select_columns(preprocessed_data: pd.DataFrame):
+async def city_park_select_columns(preprocessed_data: pd.DataFrame):
     city_park_seoul = preprocessed_data[preprocessed_data['institutionNm'].notnull()]
 
     city_park_seoul_final = city_park_seoul[['parkNm', 'parkSe', 'lnmadr', 'latitude', 'longitude', 'parkAr']]
@@ -68,13 +68,14 @@ def city_park_select_columns(preprocessed_data: pd.DataFrame):
 
     return city_park_seoul_final
 
-def startup_city_park():
-    df = city_park_parsing()
-    df = city_park_preprocess(df)
-    df = city_park_select_columns(df)
+
+async def startup_city_park():
+    df = await city_park_parsing()
+    df = await city_park_preprocess(df)
+    df = await city_park_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-    start_save_city_park(total_json)
+    await start_save_city_park(total_json)
     print(f'city_park save success')
 
 

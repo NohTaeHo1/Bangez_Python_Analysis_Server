@@ -11,11 +11,12 @@ from dotenv import load_dotenv
 from app.database.schedule_database import schedule_save_apt_rent
 
 
-def apt_rent_parsing():
-    load_dotenv()
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+
+async def apt_rent_parsing():
 
     df = pd.read_csv(data_path)
 
@@ -56,9 +57,8 @@ def apt_rent_parsing():
 
     return total
 
-def apt_rent_preprocess(parsing_data: pd.DataFrame):
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+
+async def apt_rent_preprocess(parsing_data: pd.DataFrame):
 
     legal_info_b_seoul = pd.read_csv(data_path).astype({'법정동시군구코드': str, '동리명': str})
 
@@ -94,7 +94,8 @@ def apt_rent_preprocess(parsing_data: pd.DataFrame):
 
     return apt_rent_2
 
-def apt_rent_select_columns(preprocessed_data: pd.DataFrame):
+
+async def apt_rent_select_columns(preprocessed_data: pd.DataFrame):
     apt_rent_final = preprocessed_data[['건축년도', '아파트', '보증금액', '월세금액', '계약날짜', '계약기간', '전용면적', '주소', '법정동코드', '층']]
     apt_rent_final_copy = apt_rent_final.copy()
     apt_rent_final_copy.rename(columns={'건축년도': 'built_year', '아파트': 'apt_name', '보증금액': 'security_deposit',
@@ -110,19 +111,20 @@ def apt_rent_select_columns(preprocessed_data: pd.DataFrame):
 
 
 async def schedule_apt_rent():
-    df = apt_rent_parsing()
-    df = apt_rent_preprocess(df)
-    df = apt_rent_select_columns(df)
+    print("schedule_apt_rent 시작")
+    current = datetime.datetime.now()
+    print("schedule_apt_rent current time: ", current)
+    df = await apt_rent_parsing()
+    df = await apt_rent_preprocess(df)
+    df = await apt_rent_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))
-
+    print('schedule_apt_rent 성공')
+    print(total_json)
+    print(type(total_json))
     await schedule_save_apt_rent(total_json)
+    print('schedule_apt_rent 성공2')
 
 if __name__ == '__main__':
     print('test')
-    # df = apt_rent_parsing()
-    # df = apt_rent_preprocess(df)
-    # df = apt_rent_select_columns(df)
-    #
-    # total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-    # print(total_json)
+    asyncio.get_event_loop().run_until_complete(schedule_apt_rent())

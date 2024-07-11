@@ -1,3 +1,5 @@
+import asyncio
+
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
@@ -13,13 +15,13 @@ app = FastAPI()
 
 
 def start_scheduler():
-    scheduler.add_job(schedule_apt_rent, 'cron', hour=1, minute=0)
-    scheduler.add_job(schedule_apt_trade, 'cron', hour=1, minute=5)  # 매일 새벽 1시 5분에 실행
-    scheduler.add_job(schedule_officetel_rent, 'cron', hour=1, minute=10)
-    scheduler.add_job(schedule_officetel_trade, 'cron', hour=1, minute=15)
+    scheduler.add_job(schedule_apt_rent, 'cron', hour=2, minute=46)
+    scheduler.add_job(schedule_apt_trade, 'cron', hour=2, minute=47)
+    scheduler.add_job(schedule_officetel_rent, 'cron', hour=10, minute=48)
+    scheduler.add_job(schedule_officetel_trade, 'cron', hour=10, minute=49)
     scheduler.start()
     print("스케줄러 시작")
-
+    asyncio.get_event_loop().run_until_complete(함수이름())
 
 def shutdown_scheduler():
     scheduler.shutdown()

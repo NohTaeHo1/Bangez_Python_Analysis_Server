@@ -10,12 +10,12 @@ from dotenv import load_dotenv
 
 from app.database.schedule_database import schedule_save_officetel_trade
 
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-def officetel_trade_parsing():
-    load_dotenv()
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def officetel_trade_parsing():
 
     df = pd.read_csv(data_path)
 
@@ -58,9 +58,7 @@ def officetel_trade_parsing():
     return total
 
 
-def officetel_trade_preprocess(parsing_data: pd.DataFrame):
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def officetel_trade_preprocess(parsing_data: pd.DataFrame):
 
     legal_info_b_seoul = pd.read_csv(data_path).astype({'법정동코드': str, '읍면동명': str})
 
@@ -102,12 +100,16 @@ def officetel_trade_preprocess(parsing_data: pd.DataFrame):
     return officetel_trade_2
 
 
-def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
+async def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
+
     officetel_trade_final = preprocessed_data[['건축년도', '단지', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층']]
     officetel_trade_final_copy = officetel_trade_final.copy()
-    officetel_trade_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '거래금액': 'security_deposit',
+    officetel_trade_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '거래금액': 'trade_price',
                                                '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
                                                '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
+    officetel_trade_final_copy['trade_price'].astype(float)
+    officetel_trade_final_copy['net_leasable_area'].astype(float)
+    officetel_trade_final_copy['price_per_area'] = officetel_trade_final_copy['trade_price'] / officetel_trade_final_copy['net_leasable_area']
     officetel_trade_final_copy.astype(str)
     officetel_trade_final_copy[officetel_trade_final_copy.select_dtypes(include=['object']).columns] = officetel_trade_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
@@ -115,9 +117,13 @@ def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
 
 
 async def schedule_officetel_trade():
-    df = officetel_trade_parsing()
-    df = officetel_trade_preprocess(df)
-    df = officetel_trade_select_columns(df)
+
+    current = datetime.datetime.now()
+    print("schedule_officetel_trade current time: ", current)
+
+    df = await officetel_trade_parsing()
+    df = await officetel_trade_preprocess(df)
+    df = await officetel_trade_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
 

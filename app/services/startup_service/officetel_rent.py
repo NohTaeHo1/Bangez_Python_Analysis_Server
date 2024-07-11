@@ -9,17 +9,14 @@ from dotenv import load_dotenv
 
 from app.database.startup_database import start_save_officetel_rent
 
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-def officetel_rent_parsing():
-    load_dotenv()
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def officetel_rent_parsing(deal_ymd):
 
     df = pd.read_csv(data_path)
-
-    current = datetime.datetime.now()
-    deal_ymd = current.strftime('%Y%m')
 
     LAWD_CD_list = df['법정동시군구코드'].unique()
 
@@ -59,9 +56,7 @@ def officetel_rent_parsing():
     return total
 
 
-def officetel_rent_preprocess(parsing_data: pd.DataFrame):
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def officetel_rent_preprocess(parsing_data: pd.DataFrame):
 
     legal_info_b_seoul = pd.read_csv(data_path).astype({'법정동코드': str, '동리명': str})
 
@@ -101,7 +96,7 @@ def officetel_rent_preprocess(parsing_data: pd.DataFrame):
     return officetel_rent_2
 
 
-def officetel_rent_select_columns(preprocessed_data: pd.DataFrame):
+async def officetel_rent_select_columns(preprocessed_data: pd.DataFrame):
     officetel_rent_final = preprocessed_data[['건축년도', '단지', '보증금', '월세', '계약날짜', '계약기간', '전용면적', '주소', '법정동코드', '층']]
     officetel_rent_final_copy = officetel_rent_final.copy()
     officetel_rent_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '보증금': 'security_deposit',
@@ -115,30 +110,31 @@ def officetel_rent_select_columns(preprocessed_data: pd.DataFrame):
 
     return officetel_rent_final_copy
 
-def startup_officetel_rent():
+
+async def startup_officetel_rent():
     current = datetime.datetime.now()
     deal_y = int(current.strftime('%Y'))
     deal_m = int(current.strftime('%m'))
 
-    for i in range(deal_m, 0, -1):
+    for i in range(deal_m, 6, -1):
         deal_ymd = str(deal_y) + str(i).zfill(2)
-        df = officetel_rent_parsing(deal_ymd)
-        df = officetel_rent_preprocess(df)
-        df = officetel_rent_select_columns(df)
+        df = await officetel_rent_parsing(deal_ymd)
+        df = await officetel_rent_preprocess(df)
+        df = await officetel_rent_select_columns(df)
         total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-        start_save_officetel_rent(total_json)
+        await start_save_officetel_rent(total_json)
         print(f'{deal_ymd} officetel_rent save success')
 
 
-    for i in range(deal_y-1, 2015, -1):
-        for j in range(1, 13, 1):
+    for i in range(deal_y - 1, 2022, -1):
+        for j in range(1, 2, 1): # 13을 2로 테스트...
             deal_ymd = str(i) + str(j).zfill(2)
-            df = officetel_rent_parsing(deal_ymd)
-            df = officetel_rent_preprocess(df)
-            df = officetel_rent_select_columns(df)
+            df = await officetel_rent_parsing(deal_ymd)
+            df = await officetel_rent_preprocess(df)
+            df = await officetel_rent_select_columns(df)
 
             total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-            start_save_officetel_rent(total_json)
+            await start_save_officetel_rent(total_json)
             print(f'{deal_ymd} officetel_rent save success')
 
 if __name__ == '__main__':

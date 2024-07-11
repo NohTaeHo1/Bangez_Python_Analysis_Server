@@ -9,12 +9,12 @@ from dotenv import load_dotenv
 
 from app.database.schedule_database import schedule_save_apt_trade
 
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-def apt_trade_parsing():
-    load_dotenv()
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def apt_trade_parsing():
 
     df = pd.read_csv(data_path)
 
@@ -57,9 +57,8 @@ def apt_trade_parsing():
 
     return total
 
-def apt_trade_preprocess(parsing_data: pd.DataFrame):
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+
+async def apt_trade_preprocess(parsing_data: pd.DataFrame):
 
     legal_info_b = pd.read_csv(data_path).astype({'법정동코드': str})
     parsing_data['법정동코드'] = parsing_data['법정동시군구코드'].astype(str) + parsing_data['법정동읍면동코드'].astype(str)
@@ -73,12 +72,18 @@ def apt_trade_preprocess(parsing_data: pd.DataFrame):
 
     return apt_trade_final
 
-def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
+
+async def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
+
     apt_trade_final = preprocessed_data[['건축년도', '아파트', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층']]
     apt_trade_final_copy = apt_trade_final.copy()
     apt_trade_final_copy.rename(columns={'건축년도': 'built_year', '아파트': 'apt_name', '거래금액': 'trade_price',
                                    '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
                                    '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
+    apt_trade_final_copy['trade_price'].astype(float)
+    apt_trade_final_copy['net_leasable_area'].astype(float)
+    apt_trade_final_copy['price_per_area'] = apt_trade_final_copy['trade_price'] / apt_trade_final_copy['net_leasable_area']
+
     apt_trade_final_copy.astype(str)
     apt_trade_final_copy[apt_trade_final_copy.select_dtypes(include=['object']).columns] = apt_trade_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
@@ -87,9 +92,11 @@ def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
 
 
 async def schedule_apt_trade():
-    df = apt_trade_parsing()
-    df = apt_trade_preprocess(df)
-    df = apt_trade_select_columns(df)
+    current = datetime.datetime.now()
+    print("schedule_apt_trade current time: ", current)
+    df = await apt_trade_parsing()
+    df = await apt_trade_preprocess(df)
+    df = await apt_trade_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
 

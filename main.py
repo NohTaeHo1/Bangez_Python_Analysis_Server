@@ -3,22 +3,24 @@ from fastapi import FastAPI
 from app.routes.schedule_route import start_scheduler, shutdown_scheduler
 from app.routes.startup_route import save_mongodb
 
-app = FastAPI()  # FastAPI 인스턴스를 생성합니다.
+app = FastAPI()
 
 
 @app.get("/")
 async def read_root():
     return {"Hello": "World"}
 
+
 @app.on_event("startup")
-def startup():
+async def startup():
     start_scheduler()
-    save_mongodb()
+    await save_mongodb()
 
 
 @app.on_event("shutdown")
 def shutdown():
     shutdown_scheduler()
+
 
 if __name__ == '__main__':
     import uvicorn

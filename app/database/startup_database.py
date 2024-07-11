@@ -1,3 +1,4 @@
+import asyncio
 import os
 import motor
 from dotenv import load_dotenv
@@ -16,25 +17,34 @@ officetelTrades_collection = client.mongo_db.officetelTrades
 schools_collection = client.mongo_db.schools
 
 
-def start_save_apt_rent(parsing_data: list):
-    aptRents_collection.insert_many(parsing_data)
+async def start_save_apt_rent(parsing_data: list):
+    await aptRents_collection.insert_many(parsing_data)
 
 
-def start_save_apt_trade(parsing_data: list):
-     aptTrades_collection.insert_many(parsing_data)
+async def start_save_apt_trade(parsing_data: list):
+    await aptTrades_collection.insert_many(parsing_data)
 
 
-def start_save_city_park(parsing_data: list):
-     cityParks_collection.insert_many(parsing_data)
+async def start_save_city_park(parsing_data: list):
+    await cityParks_collection.insert_many(parsing_data)
 
 
-def start_save_officetel_rent(parsing_data: list):
-     officetelRents_collection.insert_many(parsing_data)
+async def start_save_officetel_rent(parsing_data: list):
+    await officetelRents_collection.insert_many(parsing_data)
 
 
-def start_save_officetel_trade(parsing_data: list):
-     officetelTrades_collection.insert_many(parsing_data)
+async def start_save_officetel_trade(parsing_data: list):
+    await officetelTrades_collection.insert_many(parsing_data)
 
 
-def start_save_school(parsing_data: list):
-     schools_collection.insert_many(parsing_data)
+async def start_save_school(parsing_data: list):
+    await schools_collection.insert_many(parsing_data)
+
+
+async def exist_collection():
+    collections = await client.mongo_db.list_collection_names()
+    return collections
+
+
+if __name__ == '__main__':
+    asyncio.get_event_loop().run_until_complete(exist_collection())

@@ -9,17 +9,14 @@ from dotenv import load_dotenv
 
 from app.database.startup_database import start_save_officetel_trade
 
+load_dotenv()
+dir = os.path.dirname(__file__)
+data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
-def officetel_trade_parsing():
-    load_dotenv()
 
-    dir = os.path.dirname(__file__)
-    data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
+async def officetel_trade_parsing(deal_ymd):
 
     df = pd.read_csv(data_path)
-
-    curtrade = datetime.datetime.now()
-    deal_ymd = curtrade.strftime('%Y%m')
 
     LAWD_CD_list = df['법정동시군구코드'].unique()
 
@@ -59,7 +56,7 @@ def officetel_trade_parsing():
     return total
 
 
-def officetel_trade_preprocess(parsing_data: pd.DataFrame):
+async def officetel_trade_preprocess(parsing_data: pd.DataFrame):
     dir = os.path.dirname(__file__)
     data_path = os.path.join(dir, '../../static_data/legal_info_b_seoul.csv')
 
@@ -103,40 +100,45 @@ def officetel_trade_preprocess(parsing_data: pd.DataFrame):
     return officetel_trade_2
 
 
-def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
+async def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
     officetel_trade_final = preprocessed_data[['건축년도', '단지', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층']]
     officetel_trade_final_copy = officetel_trade_final.copy()
     officetel_trade_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '거래금액': 'security_deposit',
                                                '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
                                                '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
+    officetel_trade_final_copy['trade_price'].astype(float)
+    officetel_trade_final_copy['net_leasable_area'].astype(float)
+    officetel_trade_final_copy['price_per_area'] = officetel_trade_final_copy['trade_price'] / officetel_trade_final_copy['net_leasable_area']
+
     officetel_trade_final_copy.astype(str)
     officetel_trade_final_copy[officetel_trade_final_copy.select_dtypes(include=['object']).columns] = officetel_trade_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
     return officetel_trade_final_copy
 
-def startup_officetel_trade():
+
+async def startup_officetel_trade():
     current = datetime.datetime.now()
     deal_y = int(current.strftime('%Y'))
     deal_m = int(current.strftime('%m'))
 
-    for i in range(deal_m, 0, -1):
+    for i in range(deal_m, 6, -1):
         deal_ymd = str(deal_y) + str(i).zfill(2)
-        df = officetel_trade_parsing(deal_ymd)
-        df = officetel_trade_preprocess(df)
-        df = officetel_trade_select_columns(df)
+        df = await officetel_trade_parsing(deal_ymd)
+        df = await officetel_trade_preprocess(df)
+        df = await officetel_trade_select_columns(df)
         total_json = json.loads(df.to_json(orient='records'))
-        start_save_officetel_trade(total_json)
+        await start_save_officetel_trade(total_json)
         print(f'{deal_ymd} officetel_trade save success')
 
-    for i in range(deal_y-1, 2015, -1):
-        for j in range(1, 13, 1):
+    for i in range(deal_y - 1, 2022, -1):
+        for j in range(1, 2, 1): # 13을 2로 테스트...
             deal_ymd = str(i) + str(j).zfill(2)
-            df = officetel_trade_parsing(deal_ymd)
-            df = officetel_trade_preprocess(df)
-            df = officetel_trade_select_columns(df)
+            df = await officetel_trade_parsing(deal_ymd)
+            df = await officetel_trade_preprocess(df)
+            df = await officetel_trade_select_columns(df)
 
             total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-            start_save_officetel_trade(total_json)
+            await start_save_officetel_trade(total_json)
             print(f'{deal_ymd} officetel_trade save success')
 
 if __name__ == '__main__':
