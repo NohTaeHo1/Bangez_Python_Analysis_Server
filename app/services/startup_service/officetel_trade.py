@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -101,13 +102,13 @@ async def officetel_trade_preprocess(parsing_data: pd.DataFrame):
 
 
 async def officetel_trade_select_columns(preprocessed_data: pd.DataFrame):
-    officetel_trade_final = preprocessed_data[['건축년도', '단지', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층']]
+    officetel_trade_final = preprocessed_data[['건축년도', '단지', '거래금액', '계약날짜', '전용면적', '주소', '법정동코드', '층', '시군구']]
     officetel_trade_final_copy = officetel_trade_final.copy()
-    officetel_trade_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '거래금액': 'security_deposit',
+    officetel_trade_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '거래금액': 'trade_price',
                                                '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
-                                               '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
-    officetel_trade_final_copy['trade_price'].astype(float)
-    officetel_trade_final_copy['net_leasable_area'].astype(float)
+                                               '주소': 'address', '법정동코드': 'legal_code', '층': 'floor', '시군구': 'ward'}, inplace=True)
+    officetel_trade_final_copy['trade_price'] = officetel_trade_final_copy['trade_price'].apply(lambda x: x.replace(',', '')).astype(float)
+    officetel_trade_final_copy['net_leasable_area'] = officetel_trade_final_copy['net_leasable_area'].astype(float)
     officetel_trade_final_copy['price_per_area'] = officetel_trade_final_copy['trade_price'] / officetel_trade_final_copy['net_leasable_area']
 
     officetel_trade_final_copy.astype(str)
@@ -143,3 +144,7 @@ async def startup_officetel_trade():
 
 if __name__ == '__main__':
     print('test')
+    df = asyncio.run(officetel_trade_parsing(202407))
+    df = asyncio.run(officetel_trade_preprocess(df))
+    df = asyncio.run(officetel_trade_select_columns(df))
+    print(df.head(3).T)

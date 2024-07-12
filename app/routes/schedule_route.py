@@ -21,7 +21,6 @@ def start_scheduler():
     scheduler.add_job(schedule_officetel_trade, 'cron', hour=10, minute=49)
     scheduler.start()
     print("스케줄러 시작")
-    asyncio.get_event_loop().run_until_complete(함수이름())
 
 def shutdown_scheduler():
     scheduler.shutdown()

@@ -105,7 +105,11 @@ async def officetel_rent_select_columns(preprocessed_data: pd.DataFrame):
                                               '월세': 'monthly_rent', '계약날짜': 'contract_date',
                                               '계약기간': 'lease_term', '전용면적': 'net_leasable_area', '주소': 'address',
                                               '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
-    officetel_rent_final_copy.astype(str)
+    officetel_rent_final_copy['ward'] = officetel_rent_final_copy['address'].apply(lambda x: x.split(' ')).apply(lambda x: x[1] if len(x) > 2 else '')
+    officetel_rent_final_copy['security_deposit'] = officetel_rent_final_copy['security_deposit'].apply(lambda x: x.replace(',', ''))
+    officetel_rent_final_copy['monthly_rent'] = officetel_rent_final_copy['monthly_rent'].apply(lambda x: x.replace(',', ''))
+
+    officetel_rent_final_copy = officetel_rent_final_copy.astype(str)
 
     officetel_rent_final_copy[officetel_rent_final_copy.select_dtypes(include=['object']).columns] = officetel_rent_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
@@ -122,9 +126,10 @@ async def schedule_officetel_rent():
     df = await officetel_rent_select_columns(df)
 
     total_json = json.loads(df.to_json(orient='records'))  # columns, records, index, values
-
+    print(total_json)
     await schedule_save_officetel_rent(total_json)
 
 
 if __name__ == '__main__':
     print('test')
+    asyncio.run(schedule_officetel_rent())

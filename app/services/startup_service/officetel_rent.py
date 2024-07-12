@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -97,13 +98,16 @@ async def officetel_rent_preprocess(parsing_data: pd.DataFrame):
 
 
 async def officetel_rent_select_columns(preprocessed_data: pd.DataFrame):
-    officetel_rent_final = preprocessed_data[['건축년도', '단지', '보증금', '월세', '계약날짜', '계약기간', '전용면적', '주소', '법정동코드', '층']]
+    officetel_rent_final = preprocessed_data[['건축년도', '단지', '보증금', '월세', '계약날짜', '계약기간', '전용면적', '주소', '법정동코드', '층', '시군구']]
     officetel_rent_final_copy = officetel_rent_final.copy()
     officetel_rent_final_copy.rename(columns={'건축년도': 'built_year', '단지': 'officetel_name', '보증금': 'security_deposit',
                                               '월세': 'monthly_rent', '계약날짜': 'contract_date',
                                               '계약기간': 'lease_term', '전용면적': 'net_leasable_area', '주소': 'address',
-                                              '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
-    officetel_rent_final_copy.astype(str)
+                                              '법정동코드': 'legal_code', '층': 'floor', '시군구': 'ward'}, inplace=True)
+    officetel_rent_final_copy['security_deposit'] = officetel_rent_final_copy['security_deposit'].apply(lambda x: x.replace(',', ''))
+    officetel_rent_final_copy['monthly_rent'] = officetel_rent_final_copy['monthly_rent'].apply(lambda x: x.replace(',', ''))
+
+    officetel_rent_final_copy = officetel_rent_final_copy.astype(str)
 
     officetel_rent_final_copy[officetel_rent_final_copy.select_dtypes(include=['object']).columns] = officetel_rent_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
@@ -139,3 +143,7 @@ async def startup_officetel_rent():
 
 if __name__ == '__main__':
     print('test')
+    df = asyncio.run(officetel_rent_parsing(202407))
+    df = asyncio.run(officetel_rent_preprocess(df))
+    df = asyncio.run(officetel_rent_select_columns(df))
+    print(df.head(3).T)

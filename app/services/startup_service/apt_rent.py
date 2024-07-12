@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -99,6 +100,9 @@ async def apt_rent_select_columns(preprocessed_data: pd.DataFrame):
                                         '월세금액': 'monthly_rent', '계약날짜': 'contract_date', '계약기간': 'lease_term',
                                         '전용면적': 'net_leasable_area',
                                         '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
+    apt_rent_final_copy['ward'] = apt_rent_final_copy['address'].apply(lambda x: x.split(' ')).apply(lambda x: x[1] if len(x) > 2 else '')
+    apt_rent_final_copy['security_deposit'] = apt_rent_final_copy['security_deposit'].apply(lambda x: x.replace(',', ''))
+    apt_rent_final_copy['monthly_rent'] = apt_rent_final_copy['monthly_rent'].apply(lambda x: x.replace(',', ''))
     apt_rent_final_copy.astype(str)
 
     apt_rent_final_copy[
@@ -138,6 +142,10 @@ async def startup_apt_rent():
 
 if __name__ == '__main__':
     print('test')
+    df = asyncio.run(apt_rent_parsing(202407))
+    df = asyncio.run(apt_rent_preprocess(df))
+    df = asyncio.run(apt_rent_select_columns(df))
+    print(df)
     # current = datetime.datetime.now()
     # deal_y = int(current.strftime('%Y'))
     # deal_m = int(current.strftime('%m'))

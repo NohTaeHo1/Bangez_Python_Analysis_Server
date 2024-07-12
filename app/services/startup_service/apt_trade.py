@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -80,8 +81,10 @@ async def apt_trade_select_columns(preprocessed_data: pd.DataFrame):
     apt_trade_final_copy.rename(columns={'건축년도': 'built_year', '아파트': 'apt_name', '거래금액': 'trade_price',
                                    '계약날짜': 'contract_date', '전용면적': 'net_leasable_area',
                                    '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
-    apt_trade_final_copy['trade_price'].astype(float)
-    apt_trade_final_copy['net_leasable_area'].astype(float)
+    apt_trade_final_copy['ward'] = apt_trade_final_copy['address'].apply(lambda x: x.split(' ')).apply(lambda x: x[1] if len(x) > 2 else '')
+
+    apt_trade_final_copy['trade_price'] = apt_trade_final_copy['trade_price'].apply(lambda x: x.strip()).apply(lambda x: x.replace(',', '')).astype(float)
+    apt_trade_final_copy['net_leasable_area'] = apt_trade_final_copy['net_leasable_area'].astype(float)
     apt_trade_final_copy['price_per_area'] = apt_trade_final_copy['trade_price'] / apt_trade_final_copy['net_leasable_area']
 
     apt_trade_final_copy.astype(str)
@@ -121,3 +124,7 @@ async def startup_apt_trade():
 
 if __name__ == '__main__':
     print('test')
+    df = asyncio.run(apt_trade_parsing(202407))
+    df = asyncio.run(apt_trade_preprocess(df))
+    df = asyncio.run(apt_trade_select_columns(df))
+    print(df)

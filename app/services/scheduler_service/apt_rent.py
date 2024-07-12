@@ -97,12 +97,19 @@ async def apt_rent_preprocess(parsing_data: pd.DataFrame):
 
 async def apt_rent_select_columns(preprocessed_data: pd.DataFrame):
     apt_rent_final = preprocessed_data[['건축년도', '아파트', '보증금액', '월세금액', '계약날짜', '계약기간', '전용면적', '주소', '법정동코드', '층']]
+    apt_rent_final['ward'] = apt_rent_final['주소'].apply(lambda x: x.split(' ')).apply(lambda x: x[1] if len(x) > 2 else '')
     apt_rent_final_copy = apt_rent_final.copy()
+
     apt_rent_final_copy.rename(columns={'건축년도': 'built_year', '아파트': 'apt_name', '보증금액': 'security_deposit',
                                         '월세금액': 'monthly_rent', '계약날짜': 'contract_date', '계약기간': 'lease_term',
                                         '전용면적': 'net_leasable_area',
                                         '주소': 'address', '법정동코드': 'legal_code', '층': 'floor'}, inplace=True)
-    apt_rent_final_copy.astype(str)
+
+    apt_rent_final_copy['security_deposit'] = apt_rent_final_copy['security_deposit'].apply(lambda x: x.replace(',', ''))
+
+    apt_rent_final_copy['monthly_rent'] = apt_rent_final_copy['monthly_rent'].apply(lambda x: x.replace(',', ''))
+
+    apt_rent_final_copy = apt_rent_final_copy.astype(str)
 
     apt_rent_final_copy[apt_rent_final_copy.select_dtypes(include=['object']).columns] = apt_rent_final_copy.select_dtypes(include=['object']).apply(
         lambda x: x.str.strip())
